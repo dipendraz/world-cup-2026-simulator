@@ -363,7 +363,7 @@
         // Data
         const timezones = {
             'ET': 0, 'CT': -1, 'MT': -2, 'PT': -3,
-            'GMT': 5, 'CET': 6, 'IST': 10.5,'Nepal Time' : 10.75, 'JST': 14, 'AEST': 15
+            'GMT': 5, 'CET': 6, 'IST': 10.5, 'JST': 14, 'AEST': 15
         };
 
         let currentTimezone = 'ET';
@@ -495,38 +495,27 @@
         ];
 
         // Functions
-        
-    function convertTime(timeStr, matchDate) {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const offset = timezones[currentTimezone];
-    
-    // Calculate total minutes
-    let totalMinutes = (hours * 60) + minutes + (offset * 60);
-    let newDay = 0;
-    
-    // Handle day overflow
-    while (totalMinutes < 0) {
-        totalMinutes += 1440; // 24 hours in minutes
-        newDay = -1;
-    }
-    while (totalMinutes >= 1440) {
-        totalMinutes -= 1440;
-        newDay = 1;
-    }
-    
-    // Convert back to hours and minutes
-    let newHours = Math.floor(totalMinutes / 60);
-    let newMinutes = Math.round(totalMinutes % 60);
-    
-    const date = new Date(matchDate);
-    date.setDate(date.getDate() + newDay);
-    
-    return {
-        time: `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`,
-        date: date.toISOString().split('T')[0]
-    };
-}
-
+        function convertTime(timeStr, matchDate) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const offset = timezones[currentTimezone];
+            let newHours = hours + offset;
+            let newDay = 0;
+            
+            if (newHours < 0) {
+                newHours += 24;
+                newDay = -1;
+            } else if (newHours >= 24) {
+                newHours -= 24;
+                newDay = 1;
+            }
+            
+            const date = new Date(matchDate);
+            date.setDate(date.getDate() + newDay);
+            
+            return {
+                time: `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+                date: date.toISOString().split('T')[0]
+            };
         }
 
         function formatDate(dateStr) {
