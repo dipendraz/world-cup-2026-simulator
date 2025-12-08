@@ -495,7 +495,8 @@
         ];
 
         // Functions
-        function convertTime(timeStr, matchDate) {
+        
+    function convertTime(timeStr, matchDate) {
     const [hours, minutes] = timeStr.split(':').map(Number);
     const offset = timezones[currentTimezone];
     
@@ -525,6 +526,7 @@
         date: date.toISOString().split('T')[0]
     };
 }
+
         }
 
         function formatDate(dateStr) {
