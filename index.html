@@ -670,18 +670,22 @@
         }
 
         function getQualifiedTeam(placeholder) {
-            // Handle winner placeholders (W-A, W-B, etc.)
-            if (placeholder.startsWith('W-')) {
+            // Handle group winner placeholders (W-A, W-B, etc.)
+            if (placeholder.startsWith('W-') && placeholder.length === 3) {
                 const group = placeholder.split('-')[1];
-                const standings = getGroupStandings(group);
-                return standings[0]?.team || placeholder;
+                if (groups[group]) {
+                    const standings = getGroupStandings(group);
+                    return standings[0]?.team || placeholder;
+                }
             }
             
             // Handle runner-up placeholders (RU-A, RU-B, etc.)
             if (placeholder.startsWith('RU-')) {
                 const group = placeholder.split('-')[1];
-                const standings = getGroupStandings(group);
-                return standings[1]?.team || placeholder;
+                if (groups[group]) {
+                    const standings = getGroupStandings(group);
+                    return standings[1]?.team || placeholder;
+                }
             }
             
             // Handle 3rd place placeholders (3rd-ABCDF, etc.)
@@ -704,7 +708,7 @@
             }
             
             // Handle match winner placeholders (W-73, W-74, etc.)
-            if (placeholder.startsWith('W-')) {
+            if (placeholder.startsWith('W-') && placeholder.length > 3) {
                 const matchId = parseInt(placeholder.split('-')[1]);
                 const matchScore = scores[matchId];
                 if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
