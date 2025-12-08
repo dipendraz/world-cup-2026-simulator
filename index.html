@@ -363,7 +363,7 @@
         // Data
         const timezones = {
             'ET': 0, 'CT': -1, 'MT': -2, 'PT': -3,
-            'GMT': 5, 'CET': 6, 'IST': 10.5, 'JST': 14, 'AEST': 15
+            'GMT': 5, 'CET': 6, 'IST': 10.5, 'NPT': 10.75, 'JST': 14, 'AEST': 15
         };
 
         let currentTimezone = 'ET';
@@ -498,22 +498,30 @@
         function convertTime(timeStr, matchDate) {
             const [hours, minutes] = timeStr.split(':').map(Number);
             const offset = timezones[currentTimezone];
-            let newHours = hours + offset;
+            
+            // Calculate total minutes
+            let totalMinutes = (hours * 60) + minutes + (offset * 60);
             let newDay = 0;
             
-            if (newHours < 0) {
-                newHours += 24;
+            // Handle day overflow
+            while (totalMinutes < 0) {
+                totalMinutes += 1440; // 24 hours in minutes
                 newDay = -1;
-            } else if (newHours >= 24) {
-                newHours -= 24;
+            }
+            while (totalMinutes >= 1440) {
+                totalMinutes -= 1440;
                 newDay = 1;
             }
+            
+            // Convert back to hours and minutes
+            let newHours = Math.floor(totalMinutes / 60);
+            let newMinutes = Math.round(totalMinutes % 60);
             
             const date = new Date(matchDate);
             date.setDate(date.getDate() + newDay);
             
             return {
-                time: `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+                time: `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`,
                 date: date.toISOString().split('T')[0]
             };
         }
@@ -528,6 +536,7 @@
             scores[matchId][team] = value === '' ? '' : Math.max(0, parseInt(value) || 0);
             localStorage.setItem('wc2026scores', JSON.stringify(scores));
             renderGroups();
+            renderKnockout();
         }
 
         function getGroupStandings(groupLetter) {
@@ -590,6 +599,150 @@
                 if (b.gf !== a.gf) return b.gf - a.gf;
                 return 0;
             });
+        }
+
+        function getQualifiedTeam(placeholder, depth = 0) {
+            // Prevent infinite recursion
+            if (depth > 10) return placeholder;
+            
+            // Handle group winner placeholders (W-A, W-B, etc.)
+            if (placeholder.startsWith('W-') && placeholder.length === 3) {
+                const group = placeholder.split('-')[1];
+                if (groups[group]) {
+                    const standings = getGroupStandings(group);
+                    return standings[0]?.team || placeholder;
+                }
+            }
+            
+            // Handle runner-up placeholders (RU-A, RU-B, etc.)
+            if (placeholder.startsWith('RU-')) {
+                const group = placeholder.split('-')[1];
+                if (groups[group]) {
+                    const standings = getGroupStandings(group);
+                    return standings[1]?.team || placeholder;
+                }
+            }
+            
+            // Handle 3rd place placeholders (3rd-ABCDF, etc.)
+            if (placeholder.startsWith('3rd-')) {
+                const groupsList = placeholder.split('-')[1].split('');
+                const thirdPlaceTeams = groupsList.map(g => {
+                    const standings = getGroupStandings(g);
+                    return standings[2] ? { ...standings[2], group: g } : null;
+                }).filter(t => t !== null);
+                
+                // Sort by points, then GD, then GF
+                thirdPlaceTeams.sort((a, b) => {
+                    if (b.points !== a.points) return b.points - a.points;
+                    if (b.gd !== a.gd) return b.gd - a.gd;
+                    return b.gf - a.gf;
+                });
+                
+                // Return the best 3rd place team from these groups
+                return thirdPlaceTeams[0]?.team || placeholder;
+            }
+            
+            // Handle match winner placeholders (W-73, W-74, etc.)
+            if (placeholder.startsWith('W-') && placeholder.length > 3) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const match = knockoutMatches.find(m => m.id === matchId);
+                if (!match) return placeholder;
+                
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    const score1 = parseInt(matchScore.team1);
+                    const score2 = parseInt(matchScore.team2);
+                    
+                    if (score1 > score2) {
+                        // Team 1 won, resolve their name recursively
+                        return getQualifiedTeam(match.team1, depth + 1);
+                    } else if (score2 > score1) {
+                        // Team 2 won, resolve their name recursively
+                        return getQualifiedTeam(match.team2, depth + 1);
+                    } else {
+                        // It's a draw, show placeholder
+                        return placeholder;
+                    }
+                }
+                
+                return placeholder;
+            }
+            
+            // Handle match loser placeholders (L-101, L-102)
+            if (placeholder.startsWith('L-')) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const match = knockoutMatches.find(m => m.id === matchId);
+                if (!match) return placeholder;
+                
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    const score1 = parseInt(matchScore.team1);
+                    const score2 = parseInt(matchScore.team2);
+                    
+                    if (score1 < score2) {
+                        // Team 1 lost, resolve their name recursively
+                        return getQualifiedTeam(match.team1, depth + 1);
+                    } else if (score2 < score1) {
+                        // Team 2 lost, resolve their name recursively
+                        return getQualifiedTeam(match.team2, depth + 1);
+                    } else {
+                        // It's a draw, show placeholder
+                        return placeholder;
+                    }
+                }
+                
+                return placeholder;
+            }
+            
+            return placeholder;
+        }
+
+        function getMatchupPreview(placeholder, depth = 0) {
+            // Prevent infinite recursion
+            if (depth > 10) return placeholder;
+            
+            // For group-based placeholders, return the actual team
+            if (placeholder.startsWith('W-') && placeholder.length === 3) {
+                return getQualifiedTeam(placeholder, depth);
+            }
+            if (placeholder.startsWith('RU-') || placeholder.startsWith('3rd-')) {
+                return getQualifiedTeam(placeholder, depth);
+            }
+            
+            // For match-based placeholders
+            if (placeholder.startsWith('W-') && placeholder.length > 3) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const match = knockoutMatches.find(m => m.id === matchId);
+                if (!match) return placeholder;
+                
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    // Match has been played, show the winner
+                    return getQualifiedTeam(placeholder, depth);
+                } else {
+                    // Match hasn't been played, resolve both teams recursively
+                    const team1 = getMatchupPreview(match.team1, depth + 1);
+                    const team2 = getMatchupPreview(match.team2, depth + 1);
+                    
+                    // If at least one team is resolved, show it
+                    if (team1 !== match.team1 || team2 !== match.team2) {
+                        return `${team1} / ${team2}`;
+                    }
+                }
+            }
+            
+            if (placeholder.startsWith('L-')) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const match = knockoutMatches.find(m => m.id === matchId);
+                if (!match) return placeholder;
+                
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    return getQualifiedTeam(placeholder, depth);
+                }
+            }
+            
+            return placeholder;
         }
 
         function renderGroups() {
@@ -669,85 +822,6 @@
             });
         }
 
-        function getQualifiedTeam(placeholder) {
-            // Handle group winner placeholders (W-A, W-B, etc.)
-            if (placeholder.startsWith('W-') && placeholder.length === 3) {
-                const group = placeholder.split('-')[1];
-                if (groups[group]) {
-                    const standings = getGroupStandings(group);
-                    return standings[0]?.team || placeholder;
-                }
-            }
-            
-            // Handle runner-up placeholders (RU-A, RU-B, etc.)
-            if (placeholder.startsWith('RU-')) {
-                const group = placeholder.split('-')[1];
-                if (groups[group]) {
-                    const standings = getGroupStandings(group);
-                    return standings[1]?.team || placeholder;
-                }
-            }
-            
-            // Handle 3rd place placeholders (3rd-ABCDF, etc.)
-            if (placeholder.startsWith('3rd-')) {
-                const groupsList = placeholder.split('-')[1].split('');
-                const thirdPlaceTeams = groupsList.map(g => {
-                    const standings = getGroupStandings(g);
-                    return standings[2] ? { ...standings[2], group: g } : null;
-                }).filter(t => t !== null);
-                
-                // Sort by points, then GD, then GF
-                thirdPlaceTeams.sort((a, b) => {
-                    if (b.points !== a.points) return b.points - a.points;
-                    if (b.gd !== a.gd) return b.gd - a.gd;
-                    return b.gf - a.gf;
-                });
-                
-                // Return the best 3rd place team from these groups
-                return thirdPlaceTeams[0]?.team || placeholder;
-            }
-            
-            // Handle match winner placeholders (W-73, W-74, etc.)
-            if (placeholder.startsWith('W-') && placeholder.length > 3) {
-                const matchId = parseInt(placeholder.split('-')[1]);
-                const matchScore = scores[matchId];
-                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
-                    const match = knockoutMatches.find(m => m.id === matchId);
-                    if (match) {
-                        const score1 = parseInt(matchScore.team1);
-                        const score2 = parseInt(matchScore.team2);
-                        if (score1 > score2) {
-                            return getQualifiedTeam(match.team1);
-                        } else if (score2 > score1) {
-                            return getQualifiedTeam(match.team2);
-                        }
-                    }
-                }
-                return placeholder;
-            }
-            
-            // Handle match loser placeholders (L-101, L-102)
-            if (placeholder.startsWith('L-')) {
-                const matchId = parseInt(placeholder.split('-')[1]);
-                const matchScore = scores[matchId];
-                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
-                    const match = knockoutMatches.find(m => m.id === matchId);
-                    if (match) {
-                        const score1 = parseInt(matchScore.team1);
-                        const score2 = parseInt(matchScore.team2);
-                        if (score1 < score2) {
-                            return getQualifiedTeam(match.team1);
-                        } else if (score2 < score1) {
-                            return getQualifiedTeam(match.team2);
-                        }
-                    }
-                }
-                return placeholder;
-            }
-            
-            return placeholder;
-        }
-
         function renderKnockout() {
             const containers = {
                 'R32': document.getElementById('r32Container'),
@@ -768,16 +842,20 @@
                     const { time: convertedTime, date: convertedDate } = convertTime(match.time, match.date);
                     const matchScore = scores[match.id] || { team1: '', team2: '' };
                     
-                    // Get qualified team names
-                    const team1Name = getQualifiedTeam(match.team1);
-                    const team2Name = getQualifiedTeam(match.team2);
+                    // Get team names with preview
+                    const team1Name = getMatchupPreview(match.team1);
+                    const team2Name = getMatchupPreview(match.team2);
+                    
+                    // Determine if teams are placeholders (show in gray)
+                    const team1IsPlaceholder = team1Name === match.team1 || team1Name.includes('/');
+                    const team2IsPlaceholder = team2Name === match.team2 || team2Name.includes('/');
                     
                     const matchCard = document.createElement('div');
                     matchCard.className = 'group-card';
                     matchCard.innerHTML = `
                         <div class="match-date">${formatDate(convertedDate)} • ${convertedTime} ${currentTimezone}</div>
                         <div class="match-teams">
-                            <div class="team-name left" style="color: ${team1Name === match.team1 ? '#9ca3af' : '#ffffff'}">${team1Name}</div>
+                            <div class="team-name left" style="color: ${team1IsPlaceholder ? '#9ca3af' : '#ffffff'}; font-size: ${team1Name.includes('/') ? '0.85em' : '0.9em'}">${team1Name}</div>
                             <div class="score-inputs">
                                 <input type="number" class="score-input" min="0" 
                                        value="${matchScore.team1}" 
@@ -789,7 +867,7 @@
                                        onchange="updateScore(${match.id}, 'team2', this.value)"
                                        placeholder="-">
                             </div>
-                            <div class="team-name right" style="color: ${team2Name === match.team2 ? '#9ca3af' : '#ffffff'}">${team2Name}</div>
+                            <div class="team-name right" style="color: ${team2IsPlaceholder ? '#9ca3af' : '#ffffff'}; font-size: ${team2Name.includes('/') ? '0.85em' : '0.9em'}">${team2Name}</div>
                         </div>
                         <div class="match-venue">${match.venue}</div>
                     `;
