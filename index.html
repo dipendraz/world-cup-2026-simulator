@@ -363,7 +363,7 @@
         // Data
         const timezones = {
             'ET': 0, 'CT': -1, 'MT': -2, 'PT': -3,
-            'GMT': 5, 'CET': 6, 'Nepal Time': 10.75, 'IST': 10.5, 'JST': 14, 'AEST': 15 
+            'GMT': 5, 'CET': 6, 'IST': 10.5, 'JST': 14, 'AEST': 15
         };
 
         let currentTimezone = 'ET';
@@ -497,33 +497,25 @@
         // Functions
         function convertTime(timeStr, matchDate) {
             const [hours, minutes] = timeStr.split(':').map(Number);
-    const offset = timezones[currentTimezone];
-    
-    // Calculate total minutes
-    let totalMinutes = (hours * 60) + minutes + (offset * 60);
-    let newDay = 0;
-    
-    // Handle day overflow
-    while (totalMinutes < 0) {
-        totalMinutes += 1440; // 24 hours in minutes
-        newDay = -1;
-    }
-    while (totalMinutes >= 1440) {
-        totalMinutes -= 1440;
-        newDay = 1;
-    }
-    
-    // Convert back to hours and minutes
-    let newHours = Math.floor(totalMinutes / 60);
-    let newMinutes = Math.round(totalMinutes % 60);
-    
-    const date = new Date(matchDate);
-    date.setDate(date.getDate() + newDay);
-    
-    return {
-        time: `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`,
-        date: date.toISOString().split('T')[0]
-    };
+            const offset = timezones[currentTimezone];
+            let newHours = hours + offset;
+            let newDay = 0;
+            
+            if (newHours < 0) {
+                newHours += 24;
+                newDay = -1;
+            } else if (newHours >= 24) {
+                newHours -= 24;
+                newDay = 1;
+            }
+            
+            const date = new Date(matchDate);
+            date.setDate(date.getDate() + newDay);
+            
+            return {
+                time: `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+                date: date.toISOString().split('T')[0]
+            };
         }
 
         function formatDate(dateStr) {
@@ -677,6 +669,81 @@
             });
         }
 
+        function getQualifiedTeam(placeholder) {
+            // Handle winner placeholders (W-A, W-B, etc.)
+            if (placeholder.startsWith('W-')) {
+                const group = placeholder.split('-')[1];
+                const standings = getGroupStandings(group);
+                return standings[0]?.team || placeholder;
+            }
+            
+            // Handle runner-up placeholders (RU-A, RU-B, etc.)
+            if (placeholder.startsWith('RU-')) {
+                const group = placeholder.split('-')[1];
+                const standings = getGroupStandings(group);
+                return standings[1]?.team || placeholder;
+            }
+            
+            // Handle 3rd place placeholders (3rd-ABCDF, etc.)
+            if (placeholder.startsWith('3rd-')) {
+                const groupsList = placeholder.split('-')[1].split('');
+                const thirdPlaceTeams = groupsList.map(g => {
+                    const standings = getGroupStandings(g);
+                    return standings[2] ? { ...standings[2], group: g } : null;
+                }).filter(t => t !== null);
+                
+                // Sort by points, then GD, then GF
+                thirdPlaceTeams.sort((a, b) => {
+                    if (b.points !== a.points) return b.points - a.points;
+                    if (b.gd !== a.gd) return b.gd - a.gd;
+                    return b.gf - a.gf;
+                });
+                
+                // Return the best 3rd place team from these groups
+                return thirdPlaceTeams[0]?.team || placeholder;
+            }
+            
+            // Handle match winner placeholders (W-73, W-74, etc.)
+            if (placeholder.startsWith('W-')) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    const match = knockoutMatches.find(m => m.id === matchId);
+                    if (match) {
+                        const score1 = parseInt(matchScore.team1);
+                        const score2 = parseInt(matchScore.team2);
+                        if (score1 > score2) {
+                            return getQualifiedTeam(match.team1);
+                        } else if (score2 > score1) {
+                            return getQualifiedTeam(match.team2);
+                        }
+                    }
+                }
+                return placeholder;
+            }
+            
+            // Handle match loser placeholders (L-101, L-102)
+            if (placeholder.startsWith('L-')) {
+                const matchId = parseInt(placeholder.split('-')[1]);
+                const matchScore = scores[matchId];
+                if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                    const match = knockoutMatches.find(m => m.id === matchId);
+                    if (match) {
+                        const score1 = parseInt(matchScore.team1);
+                        const score2 = parseInt(matchScore.team2);
+                        if (score1 < score2) {
+                            return getQualifiedTeam(match.team1);
+                        } else if (score2 < score1) {
+                            return getQualifiedTeam(match.team2);
+                        }
+                    }
+                }
+                return placeholder;
+            }
+            
+            return placeholder;
+        }
+
         function renderKnockout() {
             const containers = {
                 'R32': document.getElementById('r32Container'),
@@ -697,12 +764,16 @@
                     const { time: convertedTime, date: convertedDate } = convertTime(match.time, match.date);
                     const matchScore = scores[match.id] || { team1: '', team2: '' };
                     
+                    // Get qualified team names
+                    const team1Name = getQualifiedTeam(match.team1);
+                    const team2Name = getQualifiedTeam(match.team2);
+                    
                     const matchCard = document.createElement('div');
                     matchCard.className = 'group-card';
                     matchCard.innerHTML = `
                         <div class="match-date">${formatDate(convertedDate)} • ${convertedTime} ${currentTimezone}</div>
                         <div class="match-teams">
-                            <div class="team-name left">${match.team1}</div>
+                            <div class="team-name left" style="color: ${team1Name === match.team1 ? '#9ca3af' : '#ffffff'}">${team1Name}</div>
                             <div class="score-inputs">
                                 <input type="number" class="score-input" min="0" 
                                        value="${matchScore.team1}" 
@@ -714,7 +785,7 @@
                                        onchange="updateScore(${match.id}, 'team2', this.value)"
                                        placeholder="-">
                             </div>
-                            <div class="team-name right">${match.team2}</div>
+                            <div class="team-name right" style="color: ${team2Name === match.team2 ? '#9ca3af' : '#ffffff'}">${team2Name}</div>
                         </div>
                         <div class="match-venue">${match.venue}</div>
                     `;
