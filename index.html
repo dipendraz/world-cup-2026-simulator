@@ -368,6 +368,7 @@
 
         let currentTimezone = 'ET';
         let scores = JSON.parse(localStorage.getItem('wc2026scores')) || {};
+        let assigned3rdPlaceTeams = new Set();
 
         const groups = {
             A: ['Mexico', 'South Africa', 'South Korea', 'UEFA PO-D'],
@@ -638,7 +639,16 @@
                     return b.gf - a.gf;
                 });
                 
-                // Return the best 3rd place team from these groups
+                // Find the best team that hasn't been assigned yet
+                for (let team of thirdPlaceTeams) {
+                    const teamKey = `${team.group}-${team.team}`;
+                    if (!assigned3rdPlaceTeams.has(teamKey)) {
+                        assigned3rdPlaceTeams.add(teamKey);
+                        return team.team;
+                    }
+                }
+                
+                // If all teams already assigned, return the best one (fallback)
                 return thirdPlaceTeams[0]?.team || placeholder;
             }
             
@@ -654,14 +664,9 @@
                     const score2 = parseInt(matchScore.team2);
                     
                     if (score1 > score2) {
-                        // Team 1 won, resolve their name recursively
                         return getQualifiedTeam(match.team1, depth + 1);
                     } else if (score2 > score1) {
-                        // Team 2 won, resolve their name recursively
                         return getQualifiedTeam(match.team2, depth + 1);
-                    } else {
-                        // It's a draw, show placeholder
-                        return placeholder;
                     }
                 }
                 
@@ -680,14 +685,9 @@
                     const score2 = parseInt(matchScore.team2);
                     
                     if (score1 < score2) {
-                        // Team 1 lost, resolve their name recursively
                         return getQualifiedTeam(match.team1, depth + 1);
                     } else if (score2 < score1) {
-                        // Team 2 lost, resolve their name recursively
                         return getQualifiedTeam(match.team2, depth + 1);
-                    } else {
-                        // It's a draw, show placeholder
-                        return placeholder;
                     }
                 }
                 
@@ -717,14 +717,11 @@
                 
                 const matchScore = scores[matchId];
                 if (matchScore && matchScore.team1 !== '' && matchScore.team2 !== '') {
-                    // Match has been played, show the winner
                     return getQualifiedTeam(placeholder, depth);
                 } else {
-                    // Match hasn't been played, resolve both teams recursively
                     const team1 = getMatchupPreview(match.team1, depth + 1);
                     const team2 = getMatchupPreview(match.team2, depth + 1);
                     
-                    // If at least one team is resolved, show it
                     if (team1 !== match.team1 || team2 !== match.team2) {
                         return `${team1} / ${team2}`;
                     }
@@ -823,6 +820,9 @@
         }
 
         function renderKnockout() {
+            // Reset assigned 3rd place teams each time we render
+            assigned3rdPlaceTeams = new Set();
+            
             const containers = {
                 'R32': document.getElementById('r32Container'),
                 'R16': document.getElementById('r16Container'),
@@ -842,11 +842,9 @@
                     const { time: convertedTime, date: convertedDate } = convertTime(match.time, match.date);
                     const matchScore = scores[match.id] || { team1: '', team2: '' };
                     
-                    // Get team names with preview
                     const team1Name = getMatchupPreview(match.team1);
                     const team2Name = getMatchupPreview(match.team2);
                     
-                    // Determine if teams are placeholders (show in gray)
                     const team1IsPlaceholder = team1Name === match.team1 || team1Name.includes('/');
                     const team2IsPlaceholder = team2Name === match.team2 || team2Name.includes('/');
                     
