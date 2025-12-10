@@ -284,7 +284,6 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-        
             <h1>
                 <span class="trophy">🏆</span>
                 FIFA World Cup 2026
@@ -356,7 +355,7 @@
         <!-- Footer -->
         <div class="footer">
             <p>Enter scores to simulate the tournament • Group winners and runners-up advance</p>
-            <p style="margin-top: 10px;">Top 4 third-place teams also qualify for Round of 32</p>
+            <p style="margin-top: 10px;">Top 8 third-place teams also qualify for Round of 32</p>
         </div>
     </div>
 
@@ -370,6 +369,22 @@
         let currentTimezone = 'ET';
         let scores = JSON.parse(localStorage.getItem('wc2026scores')) || {};
         let assigned3rdPlaceTeams = new Set();
+
+ const flagMap = {
+            'Mexico': '🇲🇽', 'South Africa': '🇿🇦', 'Korea Republic': '🇰🇷', 'UEFA PO D': '❓',
+            'Canada': '🇨🇦', 'UEFA PO A': '❓', 'Qatar': '🇶🇦', 'Switzerland': '🇨🇭',
+            'Brazil': '🇧🇷', 'Morocco': '🇲🇦', 'Haiti': '🇭🇹', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+            'United States': '🇺🇸', 'Paraguay': '🇵🇾', 'Australia': '🇦🇺', 'UEFA PO C': '❓',
+            'Germany': '🇩🇪', 'Curaçao': '🇨🇼', 'Ivory Coast': '🇨🇮', 'Ecuador': '🇪🇨',
+            'Netherlands': '🇳🇱', 'Japan': '🇯🇵', 'UEFA PO B': '❓', 'Tunisia': '🇹🇳',
+            'Belgium': '🇧🇪', 'Egypt': '🇪🇬', 'Iran': '🇮🇷', 'New Zealand': '🇳🇿',
+            'Spain': '🇪🇸', 'Cape Verde': '🇨🇻', 'Saudi Arabia': '🇸🇦', 'Uruguay': '🇺🇾',
+            'France': '🇫🇷', 'Senegal': '🇸🇳', 'Intercontinental PO 2': '❓', 'Norway': '🇳🇴',
+            'Argentina': '🇦🇷', 'Algeria': '🇩🇿', 'Austria': '🇦🇹', 'Jordan': '🇯🇴',
+            'Portugal': '🇵🇹', 'Intercontinental PO 1': '❓', 'Uzbekistan': '🇺🇿', 'Colombia': '🇨🇴',
+            'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croatia': '🇭🇷', 'Ghana': '🇬🇭', 'Panama': '🇵🇦'
+        };
+
 
         const groups = {
             A: ['Mexico', 'South Africa', 'South Korea', 'UEFA PO-D'],
@@ -462,37 +477,48 @@
         ];
 
         const knockoutMatches = [
+            // Round of 32 - Official FIFA bracket
             {id:73,stage:'R32',date:'2026-06-28',time:'15:00',team1:'RU-A',team2:'RU-B',venue:'Los Angeles'},
-            {id:74,stage:'R32',date:'2026-06-29',time:'13:00',team1:'W-C',team2:'RU-F',venue:'Houston'},
-            {id:75,stage:'R32',date:'2026-06-29',time:'16:30',team1:'W-E',team2:'3rd-ABCDF',venue:'Boston'},
-            {id:76,stage:'R32',date:'2026-06-29',time:'21:00',team1:'W-F',team2:'RU-C',venue:'Monterrey'},
-            {id:77,stage:'R32',date:'2026-06-30',time:'13:00',team1:'RU-E',team2:'RU-I',venue:'Dallas'},
-            {id:78,stage:'R32',date:'2026-06-30',time:'17:00',team1:'W-I',team2:'3rd-CDFGH',venue:'New Jersey'},
+            {id:74,stage:'R32',date:'2026-06-29',time:'16:30',team1:'W-E',team2:'3rd-ABCDF',venue:'Boston'},
+            {id:75,stage:'R32',date:'2026-06-29',time:'21:00',team1:'W-F',team2:'RU-C',venue:'Guadalajara'},
+            {id:76,stage:'R32',date:'2026-06-29',time:'13:00',team1:'W-C',team2:'RU-F',venue:'Houston'},
+            {id:77,stage:'R32',date:'2026-06-30',time:'17:00',team1:'W-I',team2:'3rd-CDFGH',venue:'New Jersey'},
+            {id:78,stage:'R32',date:'2026-06-30',time:'13:00',team1:'RU-E',team2:'RU-I',venue:'Dallas'},
             {id:79,stage:'R32',date:'2026-06-30',time:'21:00',team1:'W-A',team2:'3rd-CEFHI',venue:'Mexico City'},
             {id:80,stage:'R32',date:'2026-07-01',time:'12:00',team1:'W-L',team2:'3rd-EHIJK',venue:'Atlanta'},
-            {id:81,stage:'R32',date:'2026-07-01',time:'16:00',team1:'W-G',team2:'3rd-AEHIJ',venue:'Seattle'},
-            {id:82,stage:'R32',date:'2026-07-01',time:'20:00',team1:'W-D',team2:'3rd-BEFIJ',venue:'Santa Clara'},
-            {id:83,stage:'R32',date:'2026-07-02',time:'15:00',team1:'W-H',team2:'RU-J',venue:'Los Angeles'},
-            {id:84,stage:'R32',date:'2026-07-02',time:'19:00',team1:'RU-K',team2:'RU-L',venue:'Toronto'},
+            {id:81,stage:'R32',date:'2026-07-01',time:'20:00',team1:'W-D',team2:'3rd-BEFIJ',venue:'Santa Clara'},
+            {id:82,stage:'R32',date:'2026-07-01',time:'16:00',team1:'W-G',team2:'3rd-AEHIJ',venue:'Seattle'},
+            {id:83,stage:'R32',date:'2026-07-02',time:'19:00',team1:'RU-K',team2:'RU-L',venue:'Toronto'},
+            {id:84,stage:'R32',date:'2026-07-02',time:'15:00',team1:'W-H',team2:'RU-J',venue:'Los Angeles'},
             {id:85,stage:'R32',date:'2026-07-02',time:'23:00',team1:'W-B',team2:'3rd-EFGIJ',venue:'Vancouver'},
-            {id:86,stage:'R32',date:'2026-07-03',time:'14:00',team1:'RU-D',team2:'RU-G',venue:'Dallas'},
-            {id:87,stage:'R32',date:'2026-07-03',time:'18:00',team1:'W-J',team2:'RU-H',venue:'Miami'},
-            {id:88,stage:'R32',date:'2026-07-03',time:'21:30',team1:'W-K',team2:'3rd-DEIJL',venue:'Kansas City'},
-            {id:89,stage:'R16',date:'2026-07-04',time:'13:00',team1:'W-73',team2:'W-87',venue:'Houston'},
-            {id:90,stage:'R16',date:'2026-07-04',time:'17:00',team1:'W-74',team2:'W-77',venue:'Philadelphia'},
-            {id:91,stage:'R16',date:'2026-07-05',time:'13:00',team1:'W-75',team2:'W-78',venue:'Guadalajara'},
-            {id:92,stage:'R16',date:'2026-07-05',time:'16:00',team1:'W-76',team2:'W-79',venue:'New Jersey'},
-            {id:93,stage:'R16',date:'2026-07-06',time:'15:00',team1:'W-80',team2:'W-82',venue:'Dallas'},
-            {id:94,stage:'R16',date:'2026-07-06',time:'19:00',team1:'W-81',team2:'W-83',venue:'Seattle'},
-            {id:95,stage:'R16',date:'2026-07-07',time:'13:00',team1:'W-84',team2:'W-86',venue:'Santa Clara'},
-            {id:96,stage:'R16',date:'2026-07-07',time:'17:00',team1:'W-85',team2:'W-88',venue:'Miami'},
+            {id:86,stage:'R32',date:'2026-07-03',time:'18:00',team1:'W-J',team2:'RU-H',venue:'Miami'},
+            {id:87,stage:'R32',date:'2026-07-03',time:'21:30',team1:'W-K',team2:'3rd-DEIJL',venue:'Kansas City'},
+            {id:88,stage:'R32',date:'2026-07-03',time:'14:00',team1:'RU-D',team2:'RU-G',venue:'Dallas'},
+            
+            // Round of 16 - Official FIFA bracket
+            {id:89,stage:'R16',date:'2026-07-04',time:'17:00',team1:'W-74',team2:'W-77',venue:'Philadelphia'},
+            {id:90,stage:'R16',date:'2026-07-04',time:'13:00',team1:'W-73',team2:'W-75',venue:'Houston'},
+            {id:91,stage:'R16',date:'2026-07-05',time:'16:00',team1:'W-76',team2:'W-78',venue:'New Jersey'},
+            {id:92,stage:'R16',date:'2026-07-05',time:'13:00',team1:'W-79',team2:'W-80',venue:'Guadalajara'},
+            {id:93,stage:'R16',date:'2026-07-06',time:'15:00',team1:'W-83',team2:'W-84',venue:'Dallas'},
+            {id:94,stage:'R16',date:'2026-07-06',time:'19:00',team1:'W-81',team2:'W-82',venue:'Seattle'},
+            {id:95,stage:'R16',date:'2026-07-07',time:'13:00',team1:'W-86',team2:'W-88',venue:'Atlanta'},
+            {id:96,stage:'R16',date:'2026-07-07',time:'17:00',team1:'W-85',team2:'W-87',venue:'Miami'},
+            
+            // Quarterfinals - Official FIFA bracket
             {id:97,stage:'QF',date:'2026-07-09',time:'16:30',team1:'W-89',team2:'W-90',venue:'Boston'},
-            {id:98,stage:'QF',date:'2026-07-10',time:'15:00',team1:'W-91',team2:'W-92',venue:'Los Angeles'},
-            {id:99,stage:'QF',date:'2026-07-11',time:'17:00',team1:'W-93',team2:'W-94',venue:'Miami'},
+            {id:98,stage:'QF',date:'2026-07-10',time:'15:00',team1:'W-93',team2:'W-94',venue:'Los Angeles'},
+            {id:99,stage:'QF',date:'2026-07-11',time:'17:00',team1:'W-91',team2:'W-92',venue:'Miami'},
             {id:100,stage:'QF',date:'2026-07-11',time:'21:00',team1:'W-95',team2:'W-96',venue:'Kansas City'},
+            
+            // Semifinals
             {id:101,stage:'SF',date:'2026-07-14',time:'15:00',team1:'W-97',team2:'W-98',venue:'Dallas'},
             {id:102,stage:'SF',date:'2026-07-15',time:'15:00',team1:'W-99',team2:'W-100',venue:'Atlanta'},
+            
+            // Third Place
             {id:103,stage:'3P',date:'2026-07-18',time:'15:00',team1:'L-101',team2:'L-102',venue:'Miami'},
+            
+            // Final
             {id:104,stage:'F',date:'2026-07-19',time:'15:00',team1:'W-101',team2:'W-102',venue:'New Jersey'}
         ];
 
@@ -849,6 +875,18 @@
                     const team1IsPlaceholder = team1Name === match.team1 || team1Name.includes('/');
                     const team2IsPlaceholder = team2Name === match.team2 || team2Name.includes('/');
                     
+                    // Check if this is the final and if there's a winner
+                    let championHTML = '';
+                    if (match.stage === 'F' && matchScore.team1 !== '' && matchScore.team2 !== '') {
+                        const score1 = parseInt(matchScore.team1);
+                        const score2 = parseInt(matchScore.team2);
+                        if (score1 > score2) {
+                            championHTML = `<div style="text-align: center; margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 8px; font-size: 1.2em; font-weight: bold; color: #1e3c72;">🏆 ${team1Name} - WORLD CHAMPIONS 2026! 🏆</div>`;
+                        } else if (score2 > score1) {
+                            championHTML = `<div style="text-align: center; margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 8px; font-size: 1.2em; font-weight: bold; color: #1e3c72;">🏆 ${team2Name} - WORLD CHAMPIONS 2026! 🏆</div>`;
+                        }
+                    }
+                    
                     const matchCard = document.createElement('div');
                     matchCard.className = 'group-card';
                     matchCard.innerHTML = `
@@ -869,6 +907,7 @@
                             <div class="team-name right" style="color: ${team2IsPlaceholder ? '#9ca3af' : '#ffffff'}; font-size: ${team2Name.includes('/') ? '0.85em' : '0.9em'}">${team2Name}</div>
                         </div>
                         <div class="match-venue">${match.venue}</div>
+                        ${championHTML}
                     `;
                     container.appendChild(matchCard);
                 });
