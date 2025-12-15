@@ -414,11 +414,8 @@
 
         <div class="footer">
             <p> Developers : Claude and Grok AI ( Thanks ) || Data : <a href="https://fifa.com" class="footer-link" target="_blank" rel="noopener">FIFA</a>
-            <p> Brain : (C) 
-                <a href="https://www.linkedin.com/in/dipendra-paudel-7a516524/" class ="footer-link" target="_blank" rel="noopener">
-                Dipendra Paudel (2025)
-                </a>
-            
+            <p> Brain : © Dipendra Paudel <span id="year"></span> |
+                <a href="https://www.linkedin.com/in/dipendra-paudel-7a516524/" class ="footer-link" target="_blank" rel="noopener"> Contact</a>
             </p>
         </div>
     </div>
@@ -1153,6 +1150,7 @@
             // will trigger renderNewBracket()
         }
     }
+        document.getElementById("year").textContent = new Date().getFullYear();
     </script>
 </body>
 </html>
