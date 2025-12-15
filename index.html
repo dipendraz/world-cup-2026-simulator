@@ -585,8 +585,8 @@
             {id:104, stage:'F', team1:'W-101', team2:'W-102', displayDate:'19 Jul, Sat', time:'15:00 ET', venue:'New York New Jersey'}
         ];
 
-        // === ALL YOUR EXISTING FUNCTIONS (unchanged except renderBracket) ===
-
+      
+            // Switch Tabs
         function switchTab(tab) {
             document.getElementById('simulator').classList.toggle('active', tab === 'simulator');
             document.getElementById('bracket').classList.toggle('active', tab === 'bracket');
@@ -594,8 +594,8 @@
             event.target.classList.add('active');
         }
 
-        // ... (all your existing functions: updateScore, getGroupStandings, renderGroups, resetAll, exportToCSV, etc.)
-
+        
+        // For display date on bracket eg. 01 Jun
         function formatDate(dateStr) {
             var date = new Date(dateStr);
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -722,9 +722,9 @@
                     });
 
                     // Optional: Clear third-place stats if you want a full reset (uncomment if desired)
-                    // Object.keys(localStorage).forEach(key => {
-                    //     if (key.startsWith('thirdPlaceStats_')) localStorage.removeItem(key);
-                    // });
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.startsWith('thirdPlaceStats_')) localStorage.removeItem(key);
+                     });
 
                     alert('Knockout bracket reset successfully!\nRound of 32 has been updated based on current group positions.');
                     
