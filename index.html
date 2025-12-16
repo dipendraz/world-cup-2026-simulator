@@ -421,6 +421,7 @@
     <script>
         let scores = JSON.parse(localStorage.getItem('wc2026scores')) || {};
 
+        //groups display with flags
         const groups = {
             A: ['🇲🇽 Mexico', '🇿🇦 South Africa', '🇰🇷 Korea Republic', '❓ DEN/MKD/CZE/IRL'],
             B: ['🇨🇦 Canada', '❓ ITA/NRL/WAL/BIH','🇨🇭 Switzerland', '🇶🇦 Qatar'],
@@ -707,29 +708,32 @@
         }
 
         function resetBracket() {
-            if (confirm('Reset the entire knockout bracket?\n\n• Group positions will stay as you set them\n• All knockout winners will be cleared\n• Round of 32 will refill based on current rankings')) {
-        
-                    // Clear ALL knockout winner selections
-                    knockoutMatches.forEach(match => {
-                        if (match.stage !== 'R32') { // Don't clear R32 winners yet — we'll recalculate based on groups
-                            localStorage.removeItem('bracketWinner_' + match.id);
-                        }
-                    });
+            if (!confirm('Are you sure you want to RESET ALL BRACKET DATA?\n\nThis will:\n• Clear all group positions (1st, 2nd, 3rd, 4th)\n• Clear all third-place stats\n• Clear all knockout winner selections\n• Reset the entire bracket to default placeholders')) {
+                return;
+            }
 
-                    // Special: Clear R32 winners too — we want fresh start from groups
-                    knockoutMatches.filter(m => m.stage === 'R32').forEach(match => {
-                        localStorage.removeItem('bracketWinner_' + match.id);
-                    });
+            // 1. Clear ALL knockout winner selections (every match)
+            knockoutMatches.forEach(match => {
+                localStorage.removeItem('bracketWinner_' + match.id);
+            });
 
-                    // Optional: Clear third-place stats if you want a full reset (uncomment if desired)
-                    Object.keys(localStorage).forEach(key => {
-                        if (key.startsWith('thirdPlaceStats_')) localStorage.removeItem(key);
-                     });
+            // 2. Clear ALL group position assignments
+            Object.keys(groups).forEach(groupLetter => {
+                localStorage.removeItem('bracketTeams_' + groupLetter);
+            });
 
-                    alert('Knockout bracket reset successfully!\nRound of 32 has been updated based on current group positions.');
-                    
-                    renderNewBracket(); // This will repopulate R32 and show ? in later rounds
+            // 3. Clear ALL third-place statistics
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('thirdPlaceStats_')) {
+                    localStorage.removeItem(key);
                 }
+            });
+
+            alert('All bracket data has been completely reset!\nYou can now set group positions and pick winners from scratch.');
+
+            // Re-render everything fresh
+            renderBracketGroups();  // Clears and resets group selectors
+            renderNewBracket();     // Shows all placeholders again
         }
         function exportToCSV() {
             var csv = 'Match,Group,Date,Time,Team 1,Score 1,Score 2,Team 2,Venue\n';
