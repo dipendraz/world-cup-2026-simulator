@@ -16,7 +16,12 @@
             padding: 20px;
             zoom : 80%
         }
-        #logo { position: fixed; top: 10px; right: 10px; width: 100px; height: auto; z-index: 1000; opacity: transparent; }
+        #logo { position: fixed; top: 10px; right: 10px; width: 70px; height: auto; z-index: 1000; opacity: 0.7;
+                   padding: 12px;  /* Space for backdrop */
+                    background: rgba(255, 255, 255,255);  /* Light frosted glass effect */
+                    border-radius: 50%;               /* Makes it circular */
+                    backdrop-filter: blur(4px);       /* Optional: nice blur effect */
+                    border: 1px solid rgba(255, 255, 255, 0.2); }
         .container { max-width: 1800px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 30px; }
         .header h1 { font-size: 3em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
